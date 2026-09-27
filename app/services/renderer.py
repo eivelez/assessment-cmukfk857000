@@ -39,8 +39,8 @@ def build_document_context(client_data: dict, deed_metadata: dict) -> dict:
         "cliente_domicilio": client_data.get("address", "Santiago"),
         "cliente_comuna": client_data.get("commune", "Santiago"),
         "cliente_nacionalidad": client_data.get("nacionalidad", "chilena"),
-        "cliente_estado_civil": client_data["estado_civil"],
-        "cliente_profesion": client_data["profesion_oficio"],
+        "cliente_estado_civil": client_data.get("estado_civil") or "[POR COMPLETAR]",
+        "cliente_profesion": client_data.get("profesion_oficio") or "[POR COMPLETAR]",
     }
     return context
 
