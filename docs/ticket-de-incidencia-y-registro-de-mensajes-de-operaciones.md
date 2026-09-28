@@ -4,7 +4,7 @@
 **Severidad:** P1 - Critica (Operacion detenida)  
 **Servicio impactado:** `document-rendering-service`  
 **Canal de coordinacion:** Slack `#incidencias-ops-legal`  
-**Estado:** Abierto / En investigacion  
+**Estado:** Resuelto (era: Abierto / En investigacion)
 
 ---
 
@@ -61,3 +61,15 @@ Los clientes reportan que, luego de completar exitosamente el pago a traves de l
 1. Identificar el motivo de las respuestas 500 en las solicitudes de los clientes afectados.
 2. Restablecer la emision de documentos para entregar los poderes a las personas que esperan en notaria.
 3. Informar al equipo de Operaciones Legales una vez que los documentos pendientes puedan descargarse.
+
+---
+
+## 5. Resolucion
+
+**Causa raiz:** el renderer leia `estado_civil` y `profesion_oficio` con acceso directo por clave (`client_data["..."]`) en `app/services/renderer.py`. Al ser campos opcionales y usar el router `model_dump(exclude_none=True)`, esas claves desaparecian cuando el cliente no las cargaba, provocando un `KeyError`. Esto marcaba la escritura como `FAILED` (con el pago ya en estado `COMPLETED`) y devolvia `HTTP 500`. El fallo era determinista, no aleatorio: dependia de si el request incluia ambos campos.
+
+**Correccion:** en `app/services/renderer.py` se sustituyo el acceso directo por `.get()` con marcador `[POR COMPLETAR]`, consistente con el resto de campos opcionales del contexto. Asi el documento siempre se emite y el equipo legal completa el dato faltante antes de la firma en notaria. No se requieren cambios de schema ni de base de datos (ambos campos ya eran `nullable`).
+
+**Verificacion:** la reproduccion del caso `DOC-2024-8841` (cliente sin estado civil ni profesion) ahora renderiza correctamente; la suite de tests queda en 7/7.
+
+**Acciones operativas para los 14 casos afectados:** reintentar la emision desde el panel (los pagos ya cobrados siguen validos, no re-cobrar) y revisar en cada borrador la marca `[POR COMPLETAR]` para completar el dato antes de enviarlo a notaria.
